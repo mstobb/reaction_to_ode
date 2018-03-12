@@ -18,6 +18,7 @@ scheme:
 
 <img src="https://latex.codecogs.com/gif.latex?%5Cdpi%7B200%7D%20%5Cbegin%7Bmatrix%7D%20A%20&plus;%202B%20%5Cunderset%7Bk_2%7D%7B%5Cstackrel%7Bk_1%7D%7B%5Crightleftharpoons%7D%7D%20C%20%5C%5C%20B%20&plus;%20D%20%5Cstackrel%7Bk_1%7D%7B%5Crightarrow%7D%20E%20%5C%5C%203E%20&plus;%20A%20%5Cunderset%7Bk_4%7D%7B%5Cstackrel%7Bk_3%7D%7B%5Crightleftharpoons%7D%7D%20F%20%5Cend%7Bmatrix%7D" /> 
 we would input the following into example.csv
+
 ```
 A + 2 * B = C , k_1 , k_3
 B + D -> E , k_1
@@ -25,12 +26,14 @@ B + D -> E , k_1
 ```
 
 Running the command
+
 ```bash
 make_stoic_matrix.py example.csv example_stoich.csv
 ```
 will generate a stoichmetric matrix for the set of reactions.  While this can be used
 for a myriad of applications, we will only be using it to construct odes.  The output
 from the example above is
+
 ```
 0,k_1,k_3,k_1,k_3,k_4
 A,-1,1,0,-1,1
@@ -42,6 +45,7 @@ F,0,0,0,1,-1
 ```
 and gets saved to example_stoich.csv.  The final step needed to construct our system
 of odes is to issue the command
+
 ```bash
 make_ode_m_file.py example_stoich.csv example_ode.m
 ```
