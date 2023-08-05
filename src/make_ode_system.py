@@ -12,7 +12,7 @@ Originally written on 8/4/2023 (as procrastination for other projects)
 """
 
 # Imports
-import os, re, json, argparse # Yeah, that's it!
+import os, re, json, math, argparse # Yeah, that's it!
 
 
 # Create class definitions for species
@@ -79,7 +79,7 @@ class Stoich:
     
         self.N = len(self.species)
         self.M = len(self.rates)
-        self.stoich = [[0 for i in range(self.M)] for j in range(self.N)]
+        self.stoich = [[math.nan for i in range(self.M)] for j in range(self.N)]
     
     def update(self, reaction: Reaction):
         # Find the index of the rate
@@ -90,6 +90,7 @@ class Stoich:
             spec_ind = self.species[spec]
 
             # Subtract species multiplicities from stoich matrix
+            if math.isnan(self.stoich[spec_ind][rate_ind]): self.stoich[spec_ind][rate_ind] = 0
             self.stoich[spec_ind][rate_ind] += - spec.multiplicity
 
         # Deal with products next
@@ -97,6 +98,7 @@ class Stoich:
             spec_ind = self.species[spec]
 
             # Add species multiplicities from stoich matrix
+            if math.isnan(self.stoich[spec_ind][rate_ind]): self.stoich[spec_ind][rate_ind] = 0
             self.stoich[spec_ind][rate_ind] += spec.multiplicity
             
     # Define how to print stoich objects
@@ -210,7 +212,7 @@ def create_matlab_ouput(input_file: str, output_file: str, s: Stoich, v: bool = 
     for i in range(1, Nr):
         f.write(", ")
         f.write(rates[i])
-    f.write("];\n\n\n")
+    f.write(" ];\n\n\n")
 
     
     f.write("% Initial Conditions \n")
@@ -226,7 +228,7 @@ def create_matlab_ouput(input_file: str, output_file: str, s: Stoich, v: bool = 
         f.write(", ")
         f.write(species[i])
         f.write("_IC")
-    f.write("];\n\n\n")
+    f.write(" ];\n\n\n")
 
     f.write("options = odeset('RelTol',1e-12,'AbsTol',1e-23);\n\n\n")
 
@@ -298,29 +300,32 @@ def create_matlab_ouput(input_file: str, output_file: str, s: Stoich, v: bool = 
         f.write(str(i+1))
         f.write(")  =")
         for j in range(Nr):
-            if int(s.stoich[i][j]) < 0:
+            if (not math.isnan(s.stoich[i][j])) and (int(s.stoich[i][j]) < 0):
                 f.write("  -  ")
                 f.write(str(rates[j]))
                 for k in range(Ns):
-                    if int(s.stoich[k][j]) < 0:
+                    if (not math.isnan(s.stoich[k][j])) and (int(s.stoich[k][j]) <= 0):
                         f.write(" * ")
                         f.write(species[k])
-                        if abs(int(s.stoich[k][j])) != 1:
+                        if (abs(int(s.stoich[k][j])) != 1) and (s.stoich[k][j] != 0):
                             f.write("^")
                             f.write(str(abs(int(s.stoich[k][j]))))
-            elif int(s.stoich[i][j]) > 0:
+            elif (not math.isnan(s.stoich[i][j])) and (int(s.stoich[i][j]) > 0):
                 f.write("  +  ")
                 f.write(str(rates[j]))
                 for k in range(Ns):
-                    if int(s.stoich[k][j]) < 0:
+                    if (not math.isnan(s.stoich[k][j])) and (int(s.stoich[k][j]) <= 0):
                         f.write(" * ")
-                        if int(s.stoich[i][j]) > 1:
+                        if (not math.isnan(s.stoich[i][j])) and (int(s.stoich[i][j]) > 1):
                             f.write(str(int(s.stoich[i][j])))
                             f.write(" * ")
                         f.write(species[k])
-                        if abs(int(s.stoich[k][j])) != 1:
+                        if (abs(int(s.stoich[k][j])) != 1) and (s.stoich[k][j] != 0):
                             f.write("^")
                             f.write(str(abs(int(s.stoich[k][j]))))
+            elif (not math.isnan(s.stoich[i][j])) and (int(s.stoich[i][j]) == 0):
+                f.write("  +  ")
+                f.write(" 0 ")
         if v: print(species[i]," complete")
         f.write(";\n\n")
 
