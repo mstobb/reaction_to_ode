@@ -10,6 +10,18 @@ While I later found better software that was already written (I highly recommend
 the perl based [ALC](https://bmcsystbiol.biomedcentral.com/articles/10.1186/1752-0509-2-91)),
 I still found this simple set of scripts to be pretty useful.
 
+### Update 8/5/2023
+
+The simplicity of this tool has allowed it to remain in active use.  The code has been updated for Python3 and reorganized for easier extensions.  Additionally, it now supports reactions that have the same species appear on as both reactants and products, e.g., $A + B \rightarrow B + C$.  
+
+More notes on changes:
+
+- Kinetic rates are optional (as they were before), with forward order expected first
+- Reactions can be chained together on a single line, so $A + B \rightarrow C \rightarrow A + D$ is now supported
+  - kinetic rates for these should be listed in the order they appear
+<br>
+<br>
+
 ## Example Usage
 
 Write out your reaction scheme in a comma separated list, one equation per line, with
@@ -28,9 +40,9 @@ B + D -> E , k_1
 
 Running the command
 ```bash
-make_stoic_matrix.py example.csv example_stoich.csv
+make_ode_system.py example.csv
 ```
-will generate a [stoichmetric matrix](https://en.wikipedia.org/wiki/Stoichiometry#Stoichiometry_matrix) for the set of reactions, which can be used for a myriad of applications.  Here, we will only be using it to construct ODEs, but feel free to be creative.  The output from the above example would be
+will generate a [stoichmetric matrix](https://en.wikipedia.org/wiki/Stoichiometry#Stoichiometry_matrix) for the set of reactions, which can be used for a myriad of applications.  Here, we will only be using it to construct ODEs, but other uses are possible.  The stoichmetric matrix for the above would look something like:
 ```text
 0,k_1,k_3,k_1,k_3,k_4
 A,-1,1,0,-1,1
@@ -40,11 +52,6 @@ D,0,0,-1,0,0
 E,0,0,1,-3,3
 F,0,0,0,1,-1
 ```
-and gets saved to example_stoich.csv.  The final step needed to construct our system of odes is to issue the command
-```bash
-make_ode_m_file.py example_stoich.csv example_ode.m
-```
-The created m-file seperates the ODEs into a driver function and a right-hand side for
-easy modification.  Rates and intial conditions can be set within the m-file once it's created.
+This is automatically used to create a system of differential equations that can be further studied.  By default a matlab m-file is generated that seperates the ODEs into a driver function and a right-hand side for easy modification.  Rates and intial conditions can be set within the m-file once it's created.
 
 See the comments in the code for further details.
