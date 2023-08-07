@@ -351,10 +351,12 @@ def main(filename: str, verbose: bool = False, log: bool = True, output: str = '
 
     # Read file and parse reactions
     if verbose: print("Reading file and parsing reactions\n")
+    c = 1
     with open(filename,"r") as fid:
         for line in fid:
             lines += line
-            reactions += line_parser(line)
+            reactions += line_parser(line, c)
+            c += 2
     
     # Split out species and rates
     species, rates = get_all_species_and_rates(reactions)
