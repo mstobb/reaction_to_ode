@@ -127,7 +127,7 @@ def species_parser(text: str):
     return species
 
 def line_parser(text: str, param_start: int = 1):
-    split_text = re.split("\W*,\W*",  text)
+    split_text = re.split(r"\W*,\W*",  text)
     reactants = split_text[0]
     if len(split_text) > 1:
         rates = split_text[1:]
@@ -171,7 +171,7 @@ def get_all_species_and_rates(reactions: list):
 #####################
 
 
-def create_matlab_ouput(input_file: str, output_file: str, s: Stoich, v: bool = False):
+def create_matlab_output(input_file: str, output_file: str, s: Stoich, v: bool = False):
 
     Ns = len(s.species)
     Nr = len(s.rates)
@@ -334,6 +334,170 @@ def create_matlab_ouput(input_file: str, output_file: str, s: Stoich, v: bool = 
     f.write("end")
     
 
+
+#########################
+## Python Output
+#########################
+
+def create_python_output(input_file: str, output_file: str, s: Stoich, v: bool = False):
+
+    Ns = len(s.species)
+    Nr = len(s.rates)
+    species = [i.name for i in s.species.keys()]
+    rates = [i for i in s.rates.keys()]
+    if v: print('\nOutput File: \n', output_file)
+    if v: print("\n")
+    f = open(output_file,'w')
+
+    f.write("# Solves ODEs based on reaction equations\n")
+    f.write("import numpy as np\n")
+    f.write("from scipy.integrate import solve_ivp\n")
+    f.write("import matplotlib.pyplot as plt \n\n")
+    f.write("def ")
+    f.write(output_file.strip(".py"))
+    f.write("(t_final=1,t_start=0):\n")
+    f.write("    # Solves a system of ODEs from t=t_start to t=t_final \n")
+    f.write("    # If no start time is given, then t_start = 0 \n")
+    f.write("    # If no start or final time is given, then t_start = 0, t_final = 1 \n")
+    f.write("    #\n")
+    f.write("    #\n")
+    f.write("    # This file was created by issuing command: \n")
+    f.write("    # 	python make_ode_system.py ")
+    f.write(input_file)
+    f.write("\n")
+    f.write("    #\n")
+    f.write("\n")
+
+    f.write("    # Kinetic Parameters \n")
+    for i in range(Nr):
+        f.write("    " + rates[i])
+        f.write(" = 1; \n")
+
+    f.write("\n    p = [ ")
+    f.write(rates[0])
+    for i in range(1, Nr):
+        f.write(", ")
+        f.write(rates[i])
+    f.write(" ];\n\n\n")
+
+    
+    f.write("    # Initial Conditions \n")
+    for i in range(Ns):
+        f.write("    " + species[i])
+        f.write("_IC")
+        f.write(" = 0; \n")
+
+    f.write("\n    init_cond = [ ")
+    f.write(species[0])
+    f.write("_IC")
+    for i in range(1,Ns):
+        f.write(", ")
+        f.write(species[i])
+        f.write("_IC")
+    f.write(" ];\n\n\n")
+
+
+    f.write("    #------------------------------ Main Solve ---------------------------#\n")
+    f.write("    sol = solve_ivp(lambda t,y: RHS(t,y,p), [t_start, t_final], init_cond, rtol=1e-12, atol=1e-23, method=\'LSODA\');\n")
+    f.write("    #---------------------------------------------------------------------#\n\n\n")
+
+    f.write("    # Rename solution components\n")
+    for i in range(Ns):
+        f.write("    " + species[i])
+        f.write(" = sol.y[")
+        f.write(str(i))
+        f.write("]; \n")
+
+    f.write("\n\n\n")
+
+    f.write("    #  \n")
+    f.write("    # Place plots or other calculations here\n")
+    f.write("    #   \n")
+    f.write("    # Example: \n")
+    f.write("    # plt.plot(sol.t, ")
+    f.write(str(species[0]))
+    f.write(", '-o', linewidth = 2, markersize = 4, label = '")
+    f.write(str(species[0]))
+    f.write("');\n")
+    f.write("    # plt.legend()\n")
+    f.write("    # plt.show()\n")
+    f.write("    #\n\n\n")
+    f.write("    # Return the solution\n")
+    f.write("    return sol\n\n\n")
+
+
+    f.write("#-----------------------------------------------------#\n")
+    f.write("#-------------------- RHS Function -------------------#\n")
+    f.write("#-----------------------------------------------------#\n\n")
+
+
+    f.write("def RHS(t,y,p):\n\n")
+    f.write("    dy = np.zeros((") 
+    f.write(str(Ns))
+    f.write(",1));\n")
+    f.write("\n\n")
+
+    f.write("    # Rename Variables \n")
+
+    for i in range(Ns):
+        f.write("    " + str(species[i]))
+        f.write("   = y[")
+        f.write(str(i))
+        f.write("]; \n")
+    f.write("\n\n")
+
+    f.write("    # Rename Kinetic Parameters \n")
+    for i in range(Nr):
+        f.write("    " + str(rates[i]))
+        f.write(" = p[")
+        f.write(str(i))
+        f.write("];  \n")
+
+    f.write("\n\n")
+
+    f.write("    # ODEs from reaction equations \n\n")
+
+    if v: print("Writing ODEs now....\n")
+
+    for i in range(Ns):
+        f.write("    # ")
+        f.write(str(species[i]))
+        f.write("\n    dy[")
+        f.write(str(i))
+        f.write("]  =")
+        for j in range(Nr):
+            if (not math.isnan(s.stoich[i][j])) and (int(s.stoich[i][j]) < 0):
+                f.write("  -  ")
+                f.write(str(rates[j]))
+                for k in range(Ns):
+                    if (not math.isnan(s.stoich[k][j])) and (int(s.stoich[k][j]) <= 0):
+                        f.write(" * ")
+                        f.write(species[k])
+                        if (abs(int(s.stoich[k][j])) != 1) and (s.stoich[k][j] != 0):
+                            f.write("**")
+                            f.write(str(abs(int(s.stoich[k][j]))))
+            elif (not math.isnan(s.stoich[i][j])) and (int(s.stoich[i][j]) > 0):
+                f.write("  +  ")
+                f.write(str(rates[j]))
+                for k in range(Ns):
+                    if (not math.isnan(s.stoich[k][j])) and (int(s.stoich[k][j]) <= 0):
+                        f.write(" * ")
+                        if (not math.isnan(s.stoich[i][j])) and (int(s.stoich[i][j]) > 1):
+                            f.write(str(int(s.stoich[i][j])))
+                            f.write(" * ")
+                        f.write(species[k])
+                        if (abs(int(s.stoich[k][j])) != 1) and (s.stoich[k][j] != 0):
+                            f.write("**")
+                            f.write(str(abs(int(s.stoich[k][j]))))
+            elif (not math.isnan(s.stoich[i][j])) and (int(s.stoich[i][j]) == 0):
+                f.write("  +  ")
+                f.write(" 0 ")
+        if v: print(species[i]," complete")
+        f.write(";\n\n")
+
+    f.write("\n    # Return the new solution\n")
+    f.write("    return dy")
+    f.write("\n\n\n\n")
     
 
 ###############################################
@@ -376,7 +540,9 @@ def main(filename: str, verbose: bool = False, log: bool = True, output: str = '
         
     # Generate output file(s)
     if output == 'm':
-        create_matlab_ouput(filename, output_file+".m", s, verbose)
+        create_matlab_output(filename, output_file+".m", s, verbose)
+    elif output == 'p':
+        create_python_output(filename, output_file+".py", s, verbose)
     else:
         print("That output type has not yet been implemented.\n\nExiting without output.")
     
